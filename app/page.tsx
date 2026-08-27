@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useId, useSyncExternalStore, useMemo } from "react";
+import { useState, useId, useSyncExternalStore, useMemo, useEffect } from "react";
 import { THEMES, StreakTheme } from "./api/streak/route";
 
 const emptySubscribe = () => () => {};
@@ -18,21 +18,24 @@ export default function Home() {
   const [inputUser, setInputUser] = useState("KaifSayed");
   const [activeUser, setActiveUser] = useState("KaifSayed");
 
-  // Theme & Color states
-  const [selectedThemeKey, setSelectedThemeKey] = useState<string>("cyberpunk");
+  // Theme & Color states - default to horizon matching user screenshot
+  const [selectedThemeKey, setSelectedThemeKey] = useState<string>("horizon");
   const [useCustomColors, setUseCustomColors] = useState<boolean>(false);
   const [customColors, setCustomColors] = useState<Omit<StreakTheme, "name">>({
-    background: THEMES.cyberpunk.background,
-    border: THEMES.cyberpunk.border,
-    stroke: THEMES.cyberpunk.stroke,
-    text: THEMES.cyberpunk.text,
-    label: THEMES.cyberpunk.label,
-    fire: THEMES.cyberpunk.fire,
-    ringBg: THEMES.cyberpunk.ringBg,
+    background: THEMES.horizon.background,
+    border: THEMES.horizon.border,
+    stroke: THEMES.horizon.stroke,
+    ring: THEMES.horizon.ring,
+    fire: THEMES.horizon.fire,
+    currStreakNum: THEMES.horizon.currStreakNum,
+    sideNums: THEMES.horizon.sideNums,
+    currStreakLabel: THEMES.horizon.currStreakLabel,
+    sideLabels: THEMES.horizon.sideLabels,
+    dates: THEMES.horizon.dates,
   });
 
   // Display options
-  const [radius, setRadius] = useState<number>(12);
+  const [radius, setRadius] = useState<number>(10);
   const [hideBorder, setHideBorder] = useState<boolean>(false);
 
   // UI Canvas preview mode
@@ -42,11 +45,20 @@ export default function Home() {
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<"markdown" | "html" | "url">("markdown");
+  const [cycleSeconds, setCycleSeconds] = useState(5);
 
   const origin = useOrigin();
   const usernameInputId = useId();
 
-  const currentTheme = THEMES[selectedThemeKey] || THEMES.cyberpunk;
+  const currentTheme = THEMES[selectedThemeKey] || THEMES.horizon;
+
+  // 5-second countdown timer for visual loop feedback
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCycleSeconds((s) => (s <= 1 ? 5 : s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Change theme preset
   const handleThemeChange = (key: string) => {
@@ -57,10 +69,13 @@ export default function Home() {
         background: theme.background,
         border: theme.border,
         stroke: theme.stroke,
-        text: theme.text,
-        label: theme.label,
+        ring: theme.ring,
         fire: theme.fire,
-        ringBg: theme.ringBg,
+        currStreakNum: theme.currStreakNum,
+        sideNums: theme.sideNums,
+        currStreakLabel: theme.currStreakLabel,
+        sideLabels: theme.sideLabels,
+        dates: theme.dates,
       });
     }
   };
@@ -82,10 +97,13 @@ export default function Home() {
         background: currentTheme.background,
         border: currentTheme.border,
         stroke: currentTheme.stroke,
-        text: currentTheme.text,
-        label: currentTheme.label,
+        ring: currentTheme.ring,
         fire: currentTheme.fire,
-        ringBg: currentTheme.ringBg,
+        currStreakNum: currentTheme.currStreakNum,
+        sideNums: currentTheme.sideNums,
+        currStreakLabel: currentTheme.currStreakLabel,
+        sideLabels: currentTheme.sideLabels,
+        dates: currentTheme.dates,
       });
     }
   };
@@ -95,7 +113,7 @@ export default function Home() {
     const params = new URLSearchParams();
     params.set("user", activeUser);
 
-    if (selectedThemeKey !== "cyberpunk" && !useCustomColors) {
+    if (selectedThemeKey !== "horizon" && !useCustomColors) {
       params.set("theme", selectedThemeKey);
     }
 
@@ -109,17 +127,26 @@ export default function Home() {
       if (customColors.stroke !== currentTheme.stroke) {
         params.set("stroke", customColors.stroke.replace("#", ""));
       }
-      if (customColors.text !== currentTheme.text) {
-        params.set("text", customColors.text.replace("#", ""));
+      if (customColors.ring !== currentTheme.ring) {
+        params.set("ring", customColors.ring.replace("#", ""));
       }
       if (customColors.fire !== currentTheme.fire) {
         params.set("fire", customColors.fire.replace("#", ""));
       }
-      if (customColors.label !== currentTheme.label) {
-        params.set("label", customColors.label.replace("#", ""));
+      if (customColors.currStreakNum !== currentTheme.currStreakNum) {
+        params.set("currStreakNum", customColors.currStreakNum.replace("#", ""));
       }
-      if (customColors.ringBg !== currentTheme.ringBg) {
-        params.set("ring_bg", customColors.ringBg.replace("#", ""));
+      if (customColors.sideNums !== currentTheme.sideNums) {
+        params.set("sideNums", customColors.sideNums.replace("#", ""));
+      }
+      if (customColors.currStreakLabel !== currentTheme.currStreakLabel) {
+        params.set("currStreakLabel", customColors.currStreakLabel.replace("#", ""));
+      }
+      if (customColors.sideLabels !== currentTheme.sideLabels) {
+        params.set("sideLabels", customColors.sideLabels.replace("#", ""));
+      }
+      if (customColors.dates !== currentTheme.dates) {
+        params.set("dates", customColors.dates.replace("#", ""));
       }
     }
 
@@ -127,7 +154,7 @@ export default function Home() {
       params.set("hide_border", "true");
     }
 
-    if (radius !== 12) {
+    if (radius !== 10) {
       params.set("radius", radius.toString());
     }
 
@@ -137,7 +164,7 @@ export default function Home() {
   const baseUrl = origin || "http://localhost:3000";
   const apiPath = `/api/streak?${queryParams}`;
   const fullBadgeUrl = `${baseUrl}${apiPath}`;
-  const previewImgUrl = refreshKey > 0 ? `${apiPath}&v=${refreshKey}` : apiPath;
+  const previewImgUrl = `${apiPath}&_v=${refreshKey}_${activeUser}`;
 
   const markdownSnippet = `[![GitHub Streak](${fullBadgeUrl})](https://github.com/${activeUser})`;
   const htmlSnippet = `<a href="https://github.com/${activeUser}">\n  <img src="${fullBadgeUrl}" alt="${activeUser}'s GitHub Streak" />\n</a>`;
@@ -199,7 +226,7 @@ export default function Home() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute -top-40 left-1/2 -translate-x-1/2 w-[850px] h-[550px] blur-[140px] rounded-full opacity-20 transition-all duration-700"
-          style={{ backgroundColor: useCustomColors ? customColors.stroke : currentTheme.stroke }}
+          style={{ backgroundColor: useCustomColors ? customColors.ring : currentTheme.ring }}
         />
         <div className="absolute top-1/3 -left-48 w-96 h-96 bg-purple-600/10 blur-[130px] rounded-full" />
         <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-cyan-600/10 blur-[130px] rounded-full" />
@@ -209,9 +236,10 @@ export default function Home() {
       <header className="relative z-20 border-b border-[#21262D]/80 backdrop-blur-xl bg-[#070A0F]/80 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E95678] via-[#FAB795] to-[#59E1E3] flex items-center justify-center shadow-lg shadow-pink-500/20">
+              {/* Fire Logo */}
+              <svg className="w-5 h-5 text-black font-bold" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C9.5 7 15 9 25 14c-1-2-3-3-3-5-3 3-4 6-4 9a7 7 0 0014 0c0-6-7-9-7-16z" />
               </svg>
             </div>
             <div>
@@ -221,7 +249,7 @@ export default function Home() {
                   Studio
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400 hidden sm:block">Dynamic SVG Stats Card Generator</p>
+              <p className="text-[11px] text-zinc-400 hidden sm:block">Animated SVG Stats Card Generator</p>
             </div>
           </div>
 
@@ -232,7 +260,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#161B22] hover:bg-[#21262D] text-zinc-300 hover:text-white border border-[#30363D] transition-colors flex items-center gap-1.5"
             >
-              <span>API Route</span>
+              <span>Raw SVG Route</span>
               <svg className="w-3 h-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
@@ -278,7 +306,7 @@ export default function Home() {
                 </div>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold text-xs rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-95 shrink-0 cursor-pointer"
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#E95678] to-[#59E1E3] hover:opacity-90 text-black font-bold text-xs rounded-xl transition-all shadow-md shadow-pink-500/20 active:scale-95 shrink-0 cursor-pointer"
                 >
                   Apply
                 </button>
@@ -308,7 +336,7 @@ export default function Home() {
             <div className="p-5 rounded-2xl bg-[#0F141C]/90 border border-[#21262D] shadow-xl backdrop-blur-xl space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span className="w-2 h-2 rounded-full bg-pink-400" />
                   Theme Presets ({Object.keys(THEMES).length})
                 </h2>
                 {useCustomColors && (
@@ -328,7 +356,7 @@ export default function Home() {
                       onClick={() => handleThemeChange(key)}
                       className={`p-2.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer group ${
                         isSelected
-                          ? "bg-[#1A2230] border-cyan-400 ring-1 ring-cyan-400 shadow-md shadow-cyan-500/10"
+                          ? "bg-[#1A2230] border-[#E95678] ring-1 ring-[#E95678] shadow-md shadow-pink-500/10"
                           : "bg-[#131924]/60 border-[#262C36] hover:border-zinc-500 hover:bg-[#161D2B]"
                       }`}
                     >
@@ -337,7 +365,7 @@ export default function Home() {
                           {theme.name}
                         </span>
                         {isSelected && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E95678] shrink-0" />
                         )}
                       </div>
                       {/* Color dots preview */}
@@ -349,13 +377,13 @@ export default function Home() {
                         />
                         <span
                           className="w-3.5 h-3.5 rounded-full shrink-0"
-                          style={{ backgroundColor: theme.stroke }}
-                          title={`Stroke: ${theme.stroke}`}
+                          style={{ backgroundColor: theme.ring }}
+                          title={`Ring: ${theme.ring}`}
                         />
                         <span
                           className="w-3.5 h-3.5 rounded-full shrink-0"
-                          style={{ backgroundColor: theme.text }}
-                          title={`Text: ${theme.text}`}
+                          style={{ backgroundColor: theme.currStreakNum }}
+                          title={`Number: ${theme.currStreakNum}`}
                         />
                         <span
                           className="w-3.5 h-3.5 rounded-full shrink-0"
@@ -375,7 +403,7 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    Custom Color Overrides
+                    Color Customization
                   </h2>
                   <label className="relative inline-flex items-center cursor-pointer ml-1">
                     <input
@@ -384,7 +412,7 @@ export default function Home() {
                       onChange={(e) => setUseCustomColors(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500"></div>
+                    <div className="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-pink-500"></div>
                   </label>
                 </div>
                 {useCustomColors && (
@@ -416,58 +444,24 @@ export default function Home() {
                   <span className="text-[10px] font-mono text-zinc-500">bg</span>
                 </div>
 
-                {/* Numbers / Title */}
+                {/* Streak Ring */}
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
                   <div className="flex items-center gap-2.5">
                     <input
                       type="color"
-                      value={customColors.text}
-                      onChange={(e) => handleColorChange("text", e.target.value)}
-                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
-                    />
-                    <div>
-                      <div className="text-xs font-semibold text-zinc-200">Stats Text</div>
-                      <div className="text-[10px] font-mono text-zinc-500">{customColors.text}</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500">text</span>
-                </div>
-
-                {/* Highlight / Stroke */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="color"
-                      value={customColors.stroke}
-                      onChange={(e) => handleColorChange("stroke", e.target.value)}
+                      value={customColors.ring}
+                      onChange={(e) => handleColorChange("ring", e.target.value)}
                       className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
                     />
                     <div>
                       <div className="text-xs font-semibold text-zinc-200">Streak Ring</div>
-                      <div className="text-[10px] font-mono text-zinc-500">{customColors.stroke}</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.ring}</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-500">stroke</span>
+                  <span className="text-[10px] font-mono text-zinc-500">ring</span>
                 </div>
 
-                {/* Border */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="color"
-                      value={customColors.border}
-                      onChange={(e) => handleColorChange("border", e.target.value)}
-                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
-                    />
-                    <div>
-                      <div className="text-xs font-semibold text-zinc-200">Card Border</div>
-                      <div className="text-[10px] font-mono text-zinc-500">{customColors.border}</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500">border</span>
-                </div>
-
-                {/* Fire / Active Badge */}
+                {/* Fire / Flame Icon */}
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
                   <div className="flex items-center gap-2.5">
                     <input
@@ -477,28 +471,130 @@ export default function Home() {
                       className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
                     />
                     <div>
-                      <div className="text-xs font-semibold text-zinc-200">Flame / Badge</div>
+                      <div className="text-xs font-semibold text-zinc-200">Flame Icon</div>
                       <div className="text-[10px] font-mono text-zinc-500">{customColors.fire}</div>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-500">fire</span>
                 </div>
 
-                {/* Subtitles & Labels */}
+                {/* Center Number */}
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
                   <div className="flex items-center gap-2.5">
                     <input
                       type="color"
-                      value={customColors.label}
-                      onChange={(e) => handleColorChange("label", e.target.value)}
+                      value={customColors.currStreakNum}
+                      onChange={(e) => handleColorChange("currStreakNum", e.target.value)}
                       className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
                     />
                     <div>
-                      <div className="text-xs font-semibold text-zinc-200">Muted Labels</div>
-                      <div className="text-[10px] font-mono text-zinc-500">{customColors.label}</div>
+                      <div className="text-xs font-semibold text-zinc-200">Center Number</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.currStreakNum}</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-500">label</span>
+                  <span className="text-[10px] font-mono text-zinc-500">currNum</span>
+                </div>
+
+                {/* Side Numbers */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.sideNums}
+                      onChange={(e) => handleColorChange("sideNums", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Side Numbers</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.sideNums}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">sideNums</span>
+                </div>
+
+                {/* Center Label */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.currStreakLabel}
+                      onChange={(e) => handleColorChange("currStreakLabel", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Current Label</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.currStreakLabel}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">currLbl</span>
+                </div>
+
+                {/* Side Labels */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.sideLabels}
+                      onChange={(e) => handleColorChange("sideLabels", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Side Labels</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.sideLabels}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">sideLbl</span>
+                </div>
+
+                {/* Date Ranges */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.dates}
+                      onChange={(e) => handleColorChange("dates", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Date Ranges</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.dates}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">dates</span>
+                </div>
+
+                {/* Divider Line / Stroke */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.stroke}
+                      onChange={(e) => handleColorChange("stroke", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Divider Lines</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.stroke}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">stroke</span>
+                </div>
+
+                {/* Card Border */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={customColors.border}
+                      onChange={(e) => handleColorChange("border", e.target.value)}
+                      className="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent"
+                    />
+                    <div>
+                      <div className="text-xs font-semibold text-zinc-200">Outer Border</div>
+                      <div className="text-[10px] font-mono text-zinc-500">{customColors.border}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">border</span>
                 </div>
               </div>
             </div>
@@ -556,14 +652,11 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
                     <span>Live Preview</span>
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                    </span>
                   </h2>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono">
-                    SVG 495×195
-                  </span>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>5s loop ({cycleSeconds}s)</span>
+                  </div>
                 </div>
 
                 {/* Test on Different Backgrounds */}
@@ -603,11 +696,11 @@ export default function Home() {
               <div
                 className={`relative rounded-xl border p-4 sm:p-8 flex flex-col items-center justify-center min-h-[240px] transition-colors duration-300 overflow-hidden ${canvasBackgroundClass}`}
               >
-                {/* Dynamic radial glow matching stroke color */}
+                {/* Dynamic radial glow matching ring color */}
                 <div
                   className="absolute w-80 h-80 rounded-full blur-[100px] pointer-events-none opacity-25 transition-all duration-500"
                   style={{
-                    backgroundColor: useCustomColors ? customColors.stroke : currentTheme.stroke,
+                    backgroundColor: useCustomColors ? customColors.ring : currentTheme.ring,
                   }}
                 />
 
@@ -622,13 +715,29 @@ export default function Home() {
                 />
               </div>
 
+              {/* Animation Feature Highlight Badges */}
+              <div className="grid grid-cols-3 gap-2 text-center text-[11px] py-1">
+                <div className="p-2 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <span className="block font-semibold text-pink-400">⭕ Animated Ring</span>
+                  <span className="text-[10px] text-zinc-500">Draws clockwise</span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <span className="block font-semibold text-cyan-400">🔢 Number Scroll</span>
+                  <span className="text-[10px] text-zinc-500">Vertical staggered roll</span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#090D14] border border-[#21262D]">
+                  <span className="block font-semibold text-emerald-400">⏱️ 5s Loop Cycle</span>
+                  <span className="text-[10px] text-zinc-500">Infinite reloading</span>
+                </div>
+              </div>
+
               {/* Action Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleCopy("markdown", markdownSnippet)}
-                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#E95678] to-[#59E1E3] hover:opacity-90 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 transition-all cursor-pointer"
                   >
                     {copiedType === "markdown" ? (
                       <>
@@ -662,13 +771,17 @@ export default function Home() {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setRefreshKey((k) => k + 1)}
-                    title="Bust cache and refresh SVG"
-                    className="p-2 rounded-lg bg-[#161B22] text-zinc-400 hover:text-white border border-[#30363D] hover:border-zinc-500 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setRefreshKey((k) => k + 1);
+                      setCycleSeconds(5);
+                    }}
+                    title="Replay 5s Animation Cycle"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#161B22] text-zinc-300 hover:text-white border border-[#30363D] hover:border-zinc-500 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
+                    <span>Replay</span>
                   </button>
 
                   <a
@@ -774,7 +887,7 @@ export default function Home() {
         {/* Integration Instructions Section */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
           <div className="p-5 rounded-2xl bg-[#0F141C]/60 border border-[#21262D] space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-sm">
+            <div className="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center font-bold text-sm">
               1
             </div>
             <h4 className="text-sm font-semibold text-white">Customize &amp; Copy</h4>
@@ -823,7 +936,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-[#21262D]/70 py-6 text-center text-xs text-zinc-500">
-        <p>GitHub Streak Generator Studio • Designed for modern developer profiles</p>
+        <p>GitHub Streak Generator Studio • Animated Developer Badges</p>
       </footer>
     </div>
   );
