@@ -10,6 +10,9 @@ A dynamic, high-performance streak badge generator for your GitHub profile READM
 - 🎨 **10 Curated Themes & Custom Colors**: Pick from presets like Cyberpunk, Dracula, Tokyo Night, Nord, or pick your own custom hex colors for background, rings, numbers, and borders.
 - 💻 **Split-Screen Studio**: Live interactive preview with instant Markdown and HTML snippet generation.
 
+# Live Website
+[Use it for free](https://github-streak-stats-rouge.vercel.app)
+
 ## Quick Start
 
 ### 1. Configure Environment
